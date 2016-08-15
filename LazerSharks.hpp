@@ -11,14 +11,29 @@ namespace LazerSharks {
 
     class Stack;
 
+
     class Handle : public Kite::TcpConnection , public Kite::Scope {
     public:
         Handle(Stack *stack, std::weak_ptr<Kite::EventLoop> ev, int fd, const Kite::InternetAddress &address);
         ~Handle();
 
-        virtual int write(const char *buf, int len);
+        virtual int write(const char *buf, int len) override;
 
-        const Kite::InternetAddress &address() const;
+        //returnable.
+        Handle &next();
+        Handle &respond (int code);
+        Handle &body    (const char *buf, int len);
+        Handle &body    (const std::string&);
+        Handle &header  (const std::string &key, const std::string &val);
+
+        // request. can be modified by middleware
+        std::map<std::string,std::string> requestHeaders;
+        Kite::InternetAddress requestAddress;
+        std::string requestUrl;
+
+        // response. can be modified by middleware
+        std::string responseStatus;
+        std::map<std::string,std::string> responseHeaders;
 
     protected:
         virtual void onActivated(int fd, int events) override final;
@@ -29,7 +44,7 @@ namespace LazerSharks {
         Private *d;
     };
 
-    typedef std::function<void(LazerSharks::Handle &)> Middleware;
+    typedef std::function<LazerSharks::Handle &(LazerSharks::Handle &)> Middleware;
 
     class Stack {
     public:
@@ -37,7 +52,7 @@ namespace LazerSharks {
         void call(const Middleware &m);
 
     private:
-        std::vector<Middleware> d_middleware;
+        std::queue<Middleware> d_middleware;
         std::vector<Handle *> d_handles;
         friend class Handle;
     };
