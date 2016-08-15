@@ -1,0 +1,3 @@
+[submodule "Kite"]
+	path = Kite
+	url = https://github.com/aep/Kite.git
