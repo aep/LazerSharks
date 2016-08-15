@@ -11,12 +11,14 @@ namespace LazerSharks {
 
     class Stack;
 
-    class Handle : public Kite::TcpConnection , public Kite::Scope{
+    class Handle : public Kite::TcpConnection , public Kite::Scope {
     public:
         Handle(Stack *stack, std::weak_ptr<Kite::EventLoop> ev, int fd, const Kite::InternetAddress &address);
         ~Handle();
 
         virtual int write(const char *buf, int len);
+
+        const Kite::InternetAddress &address() const;
 
     protected:
         virtual void onActivated(int fd, int events) override final;

@@ -23,6 +23,7 @@ public:
     Handle *p;
     http_parser_settings settings;
     http_parser parser;
+    Kite::InternetAddress address;
 
     static int http_on_url(http_parser* parser, const char *at, size_t length);
     static int http_on_header_field(http_parser* parser, const char *at, size_t length);
@@ -44,6 +45,7 @@ LazerSharks::Handle::Handle(Stack *stack, std::weak_ptr<Kite::EventLoop> ev, int
     d->p = this;
     d->r_has_written_headers = false;
     d->r_status = "200 OK";
+    d->address = address;
     memset(&d->settings, 0, sizeof(http_parser_settings));
 
     d->settings.on_url          = LazerSharks::Handle::Private::http_on_url;
@@ -61,6 +63,11 @@ LazerSharks::Handle::~Handle()
     stack->d_handles.erase(std::remove(stack->d_handles.begin(),
                 stack->d_handles.end(), this), stack->d_handles.end());
     delete d;
+}
+
+const Kite::InternetAddress &LazerSharks::Handle::address() const
+{
+    return d->address;
 }
 
 void LazerSharks::Handle::onClosing()

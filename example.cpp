@@ -1,4 +1,5 @@
 #include <Kite/EventLoop.hpp>
+#include <Kite/Process.hpp>
 #include "LazerSharks.hpp"
 
 int main(int argc, char **argv)
@@ -9,7 +10,11 @@ int main(int argc, char **argv)
 
 
     lz->call([](LazerSharks::Handle &r) {
-            std::string s = "yo mate!";
+
+
+            Kite::Process::shell("ubus call dhcp ipv4leases");
+
+            std::string s = "yo mate!\nyou callin from " + r.address().address();
             r.write(s.c_str(), s.size());
     });
 
