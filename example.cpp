@@ -1,4 +1,5 @@
 #include <Kite/EventLoop.hpp>
+#include <Kite/HttpClient.hpp>
 #include <Kite/Process.hpp>
 #include "LazerSharks.hpp"
 
@@ -15,6 +16,7 @@ LazerSharks::Handle &http_index(LazerSharks::Handle &r) {
     s += "<ul>";
     s += "<li><a href='/example.cpp'> here is some source code</a></li>";
     s += "<li><a href='/nah'> here's a 404</a></li>";
+    s += "<li><a href='/proxy'> async proxy request</a></li>";
     s += "</ul>";
 
     return r.respond(200)
@@ -45,6 +47,48 @@ LazerSharks::Handle &http_static(LazerSharks::Handle &r) {
     }
 }
 
+
+class ProxyRequest : public Kite::HttpClient
+{
+public:
+    ProxyRequest(LazerSharks::Handle &r)
+        : Kite::HttpClient(r.ev())
+        , r(r)
+    {
+        get("http://www.heise.de");
+    }
+    LazerSharks::Handle &r;
+protected:
+    virtual void onHeadersReady(int code, const std::map<std::string,std::string> &responseHeaders) override
+    {
+        r.responseHeaders = responseHeaders;
+        r.respond(code);
+    }
+
+    virtual void onReadActivated() override
+    {
+        char buf[1024];
+        int l = read(buf, 1024);
+        r.body(buf, l);
+    }
+    virtual void onFinished(Status status, int responseCode, const std::string &body) override
+    {
+        r.respond(responseCode);
+        if (responseCode != 200) {
+            r.body(errorMessage());
+        }
+        r.respond(responseCode).body(body).close();
+    }
+};
+
+LazerSharks::Handle &http_proxy_proxy(LazerSharks::Handle &r) {
+    if (r.url != "/proxy") {
+        return r.next();
+    }
+
+    return r.later(new ProxyRequest(r));
+}
+
 int main(int argc, char **argv)
 {
     std::shared_ptr<Kite::EventLoop> ev(new Kite::EventLoop);
@@ -66,6 +110,7 @@ int main(int argc, char **argv)
             });
 
     lz->call(http_index);
+    lz->call(http_proxy_proxy);
     lz->call(http_static);
 
     if (!s->listen(Kite::InternetAddress(Kite::InternetAddress::Any, 8000))) {

@@ -12,7 +12,7 @@ namespace LazerSharks {
     class Stack;
 
 
-    class Handle : public Kite::TcpConnection , public Kite::Scope {
+    class Handle : public Kite::TcpConnection , public Kite::Scope, public Kite::DeathNotificationReceiver {
     public:
         Handle(Stack *stack, std::weak_ptr<Kite::EventLoop> ev, int fd, const Kite::InternetAddress &address);
         ~Handle();
@@ -25,6 +25,7 @@ namespace LazerSharks {
         Handle &body    (const char *buf, int len);
         Handle &body    (const std::string&);
         Handle &header  (const std::string &key, const std::string &val);
+        Handle &later   (Kite::Scope *sc);
 
         // request. can be modified by middleware
         std::map<std::string,std::string> requestHeaders;
@@ -39,6 +40,7 @@ namespace LazerSharks {
     protected:
         virtual void onActivated(int fd, int events) override final;
         virtual void onClosing() override final;
+        virtual void onDeathNotify(Scope *sc) override final;
     private:
         Stack *stack;
         class Private;

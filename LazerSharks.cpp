@@ -21,6 +21,7 @@ void LazerSharks::Stack::call(const LazerSharks::Middleware &middleware) {
 class LazerSharks::Handle::Private {
 public:
     Handle *p;
+    Kite::Scope *later;
     http_parser_settings settings;
     http_parser parser;
     std::string parserB;
@@ -43,6 +44,7 @@ LazerSharks::Handle::Handle(Stack *stack, std::weak_ptr<Kite::EventLoop> ev, int
     , d(new Private)
 {
     d->p = this;
+    d->later = 0;
     d->r_has_written_headers = false;
     responseStatus = "404 NOT FOUND";
     requestAddress = address;
@@ -69,6 +71,9 @@ LazerSharks::Handle::~Handle()
 void LazerSharks::Handle::onClosing()
 {
     ev().lock()->deleteLater(this);
+    if (d->later) {
+        ev().lock()->deleteLater(d->later);
+    }
 }
 
 int LazerSharks::Handle::Private::http_on_url(http_parser* parser, const char *at, size_t length)
@@ -97,10 +102,10 @@ int LazerSharks::Handle::Private::http_on_headers_complete(http_parser* parser)
 {
     LazerSharks::Handle::Private *d = (LazerSharks::Handle::Private *)parser->data;
     d->p->next();
-    //TODO: implement async here. for now we just support sync, so close after next() stack finished.
-    //but the api is prepared so that you can return and call respond() later
-    d->p->write(0,0);
-    d->p->close();
+    if (!d->later) {
+        d->p->write(0,0);
+        d->p->close();
+    }
     return 0;
 }
 
@@ -176,5 +181,19 @@ LazerSharks::Handle &LazerSharks::Handle::next()
     auto m = d->middleware.front();
     d->middleware.pop();
     return m(*d->p);
+}
+
+LazerSharks::Handle &LazerSharks::Handle::later   (Kite::Scope *sc)
+{
+    if (d->later) {
+        throw std::runtime_error("LazerSharks::Handle:later called twice");
+    }
+    setNotificationScope(sc);
+    d->later = sc;
+}
+
+void LazerSharks::Handle::onDeathNotify(Scope *sc)
+{
+    close();
 }
 
