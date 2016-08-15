@@ -29,6 +29,7 @@ namespace LazerSharks {
         // request. can be modified by middleware
         std::map<std::string,std::string> requestHeaders;
         Kite::InternetAddress requestAddress;
+        std::string url;
         std::string requestUrl;
 
         // response. can be modified by middleware

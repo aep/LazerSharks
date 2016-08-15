@@ -75,6 +75,7 @@ int LazerSharks::Handle::Private::http_on_url(http_parser* parser, const char *a
 {
     LazerSharks::Handle::Private *d = (LazerSharks::Handle::Private *)parser->data;
     d->p->requestUrl = std::string(at, length);
+    d->p->url = d->p->requestUrl;
     return 0;
 }
 

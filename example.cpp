@@ -7,7 +7,7 @@
 #include <unistd.h>
 
 LazerSharks::Handle &http_index(LazerSharks::Handle &r) {
-    if (r.requestUrl != "/index.html") {
+    if (r.url != "/index.html") {
         return r.next();
     }
 
@@ -23,15 +23,15 @@ LazerSharks::Handle &http_index(LazerSharks::Handle &r) {
 }
 
 LazerSharks::Handle &http_static(LazerSharks::Handle &r) {
-    if (r.requestUrl.find("..") != std::string::npos) {
+    if (r.url.find("..") != std::string::npos) {
         return r.respond(404);
     }
 
-    int fd = open(("./" + r.requestUrl).c_str(), O_RDONLY);
+    int fd = open(("./" + r.url).c_str(), O_RDONLY);
     if (fd < 1) {
         return r.next();
     }
-    std::cerr << "http_static " << r.requestUrl << std::endl;
+    std::cerr << "http_static " << r.url << std::endl;
 
     r.respond(200);
     for(;;) {
@@ -51,17 +51,16 @@ int main(int argc, char **argv)
     std::shared_ptr<LazerSharks::Stack> lz(new LazerSharks::Stack);
     std::shared_ptr<Kite::TcpServer> s(new Kite::TcpServer(ev, lz->tcpFactory()));
 
-
     //just some logging
     lz->call([](LazerSharks::Handle &r) -> LazerSharks::Handle & {
-            std::cerr << r.requestUrl  << std::endl;
+            std::cerr << r.url  << std::endl;
             return r.next();
             });
 
     //handle / as /index.html
     lz->call([](LazerSharks::Handle &r) -> LazerSharks::Handle &{
-            if (r.requestUrl == "/") {
-               r.requestUrl = "/index.html";
+            if (r.url == "/") {
+               r.url = "/index.html";
             }
             return r.next();
             });
