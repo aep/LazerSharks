@@ -88,6 +88,8 @@ int LazerSharks::Handle::Private::http_on_header_field(http_parser* parser, cons
 {
     LazerSharks::Handle::Private *d = (LazerSharks::Handle::Private *)parser->data;
     d->parserB = std::string(at, length);
+    std::transform(d->parserB.begin(), d->parserB.end(), d->parserB.begin(), ::tolower);
+
     return 0;
 }
 
